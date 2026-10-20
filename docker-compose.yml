@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-sp-agent
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sp_agent
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sp_agent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sp-agent-network
+
+  migrator:
+    build:
+      context: .
+      dockerfile: migrate.dockerfile
+    container_name: migrator-sp-agent
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure:6
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/sp_agent?sslmode=disable
+    networks:
+      - sp-agent-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-sp-agent
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - sp-agent-network
+
+volumes:
+  postgres_data:
+
+networks:
+  sp-agent-network:
+    driver: bridge

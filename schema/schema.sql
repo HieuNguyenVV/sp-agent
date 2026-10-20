@@ -1,0 +1,3 @@
+-- Desired schema for sp-agent.
+-- Add tables here, then generate a migration:
+--   make migrate-diff name=<migration_name>
